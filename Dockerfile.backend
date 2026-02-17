@@ -1,0 +1,28 @@
+# Dockerfile.backend
+# Use an official Python runtime as a parent image
+FROM python:3.12-slim-bullseye
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install system dependencies required for psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the working directory
+COPY requirements.txt .
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+COPY . /app
+
+# Expose port 8000 for the Django application
+EXPOSE 8000
+
+# Command to run Django migrations and then start the server
+# This command will be overridden in docker-compose.yml for more control
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

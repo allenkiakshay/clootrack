@@ -1,0 +1,59 @@
+
+
+services:
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: clootrackdb
+      POSTGRES_USER: clootrackuser
+      POSTGRES_PASSWORD: clootrackpassword
+    ports:
+      - "5432:5432" # Optional: expose DB port for local access
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: >
+      sh -c "while ! pg_isready -h db -p 5432; do echo 'Waiting for db...'; sleep 2; done;
+             python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app # Mount current directory to /app for development
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.example # Use .env.example for other backend environment variables
+    environment:
+      # Database connection for Django (local db service)
+      DATABASE_ENGINE: django.db.backends.postgresql
+      DATABASE_NAME: clootrackdb
+      DATABASE_USER: clootrackuser
+      DATABASE_PASSWORD: clootrackpassword
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      SECRET_KEY: ${SECRET_KEY:-your_secret_key_here}
+      DEBUG: ${DEBUG:-True}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    volumes:
+      - ./frontend:/app/frontend # Mount frontend directory for development
+      - /app/frontend/node_modules # Avoid overwriting node_modules inside container
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

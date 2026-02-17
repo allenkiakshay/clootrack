@@ -119,4 +119,8 @@ class TicketViewSet(
                 "suggested_priority": result.get('priority')
             })
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            return Response({
+                "suggested_category": None,
+                "suggested_priority": None,
+                "error": str(e)
+            })
